@@ -5,6 +5,5 @@ spring:
   thymeleaf:
     cache: false
 
-egr:
-  addressAndDateURL: 'http://egr.gov.by/api/v2/egr/getAddressByRegNum'
+taxpayer:
   fullNameAndStatusURL: 'http://egr.gov.by/api/v2/egr/getShortInfoByRegNum'

@@ -1,5 +1,7 @@
+
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="https://www.thymeleaf.org">
 <head>
     <title>Taxpayer</title>
     <meta charset="UTF-8">
@@ -73,20 +75,26 @@
     const unpLength = 9;
 
     unp.addEventListener('paste', function (e) {
+        e.preventDefault()
         let paste = (e.clipboardData || window.clipboardData).getData("text");
         paste = paste.trim()
-        if (paste.length > unpLength) {
-            e.preventDefault()
+        if(!/^\d+$/.test(paste)){
+            return
         }
+        if (paste.length > unpLength) {
+            paste = paste.substring(0,unpLength)
+        }
+        e.target.value = paste
     });
 
     unp.addEventListener("keypress", function (e) {
+        if(!isFinite(e.key)){
+            e.preventDefault()
+        }
         if (e.key === "Enter") {
             e.preventDefault();
             document.getElementById("fillButton").click();
         } else if (this.value.length === unpLength) {
-            e.preventDefault()
-        } else if (e.key === ' ' || e.key === 'Spacebar') {
             e.preventDefault()
         }
     });
@@ -94,10 +102,11 @@
     $(document).ready(function () {
         $('#' + 'fillButton').click(function (e) {
             let unp = document.getElementById("unp").value;
-            if (unp === "") {
+            if (unp === "" || unp.length  !== unpLength) {
                 e.preventDefault()
+            }else {
+                fill();
             }
-            fill();
         })
     })
 
@@ -109,42 +118,47 @@
     }
 
     function fill() {
-        $.getJSON(`http://grp.nalog.gov.by/api/grp-public/data?unp=${unp.value}&charset=UTF-8&type=json`
-        ).done(function (nalog) {
-            console.log(nalog)
-            if (nalog) {
-                document.getElementById('registrationDate').value = nalog.row.dreg;
-                document.getElementById('address').value = nalog.row.vpadres;
-            }
-                $.getJSON(`http://localhost:8080/taxpayer/fill/${unp.value}`
-                ).done(function (data) {
-                    if (data) {
-                        document.getElementById('fullName').value = data.fullName;
-                        document.getElementById('status').value = data.status;
-                    }
-                    if ((!document.getElementById('status').value || document.getElementById('status').value.trim() === '')) {
-                        document.getElementById('status').value = nalog.row.vkods;
-                    }
-                    if ((!document.getElementById('fullName').value || document.getElementById('fullName').value.trim() === '')) {
-                        document.getElementById('fullName').value = nalog.row.vnaimp;
-                    }
-                    if (!document.getElementById('registrationDate').value || document.getElementById('registrationDate').value.trim() === '') {
-                        document.getElementById('registrationDate').value = data.registrationDate;
-                    }
-                    if (!document.getElementById('address').value || document.getElementById('address').value.trim() === '') {
-                        document.getElementById('address').value = data.address;
-                    }
-                })
-        }).fail(function (nalog) {
-            console.info('fail')
+        const successEGR = fillEGR()
+        const successGRP = fillGRP()
+        if(!successEGR && !successGRP){
             fillDefault()
-        })
+        }
     }
+
+    function fillEGR(){
+        $.ajax(`http://localhost:8080/taxpayer/fill/${unp.value}`
+        ).done(function (data) {
+            if (data) {
+                setField('fullName', data)
+                return true
+            }
+        }).fail(function (data) {
+            return false
+        })
+        return false
+    }
+
+    function fillGRP(){
+        $.getJSON(`http://grp.nalog.gov.by/api/grp-public/data?unp=${unp.value}&charset=UTF-8&type=json`
+        ).done(function (data) {
+            if (data) {
+                setField('address', data.row.vpadres)
+                setField('registrationDate', data.row.dreg)
+                setField('status', data.row.vkods)
+                return true
+            }
+        }).fail(function (data) {
+            return false
+        })
+        return false
+    }
+    function setField(field, value){
+        if (!document.getElementById(field).value || document.getElementById(field).value.trim() === '') {
+            document.getElementById(field).value = value;
+        }
+    }
+
 </script>
 
-<script crossorigin="anonymous"
-        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-        th:src="@{https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js}">
-</script>
 </body>
 </html>
