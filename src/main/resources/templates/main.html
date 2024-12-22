@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Taxpayer</title>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <link href="#" rel="shortcut icon">
+    <link crossorigin="anonymous" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          rel="stylesheet" th:href="@{https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css}">
+
+    <style>
+        body {
+            font-family: sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+
+    <script crossorigin="anonymous"
+            integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+            th:src="@{https://code.jquery.com/jquery-3.3.1.min.js}">
+    </script>
+</head>
+<body>
+
+<div class="container py-3">
+    <div class="mb-3">
+        <label class="form-label" for="unp">УНП<sup>*</sup></label>
+        <div class="row p-0 m-0">
+            <div class="col col-6 px-0">
+                <input class="form-control" id="unp" name="unp" required type="text">
+            </div>
+            <div class="col col-6 px-0">
+                <button class="btn btn-success ml-2" id="fillButton" type="button">
+                    ЗАПОЛНИТЬ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="fullName">
+            Полное наименование плательщика
+        </label>
+        <input class="form-control" id="fullName" name="fullName" readonly type="text">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="address">
+            Адрес
+        </label>
+        <input class="form-control" id="address" name="address" readonly type="text">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="registrationDate">
+            Дата постановки на учет
+        </label>
+        <input class="form-control" id="registrationDate" name="registrationDate" readonly type="date">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="status">
+            Статус
+        </label>
+        <input class="form-control" id="status" name="status" readonly type="text">
+    </div>
+</div>
+
+<script>
+    const unp = document.getElementById("unp");
+    const unpLength = 9;
+
+    unp.addEventListener('paste', function (e) {
+        let paste = (e.clipboardData || window.clipboardData).getData("text");
+        paste = paste.trim()
+        if (paste.length > unpLength) {
+            e.preventDefault()
+        }
+    });
+
+    unp.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("fillButton").click();
+        } else if (this.value.length === unpLength) {
+            e.preventDefault()
+        } else if (e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault()
+        }
+    });
+
+    $(document).ready(function () {
+        $('#' + 'fillButton').click(function (e) {
+            let unp = document.getElementById("unp").value;
+            if (unp === "") {
+                e.preventDefault()
+            }
+            fill();
+        })
+    })
+
+    function fillDefault() {
+        document.getElementById('fullName').value = null;
+        document.getElementById('registrationDate').value = null;
+        document.getElementById('status').value = null;
+        document.getElementById('address').value = null;
+    }
+
+    function fill() {
+        $.getJSON(`http://grp.nalog.gov.by/api/grp-public/data?unp=${unp.value}&charset=UTF-8&type=json`
+        ).done(function (nalog) {
+            console.log(nalog)
+            if (nalog) {
+                document.getElementById('registrationDate').value = nalog.row.dreg;
+                document.getElementById('address').value = nalog.row.vpadres;
+            }
+                $.getJSON(`http://localhost:8080/taxpayer/fill/${unp.value}`
+                ).done(function (data) {
+                    if (data) {
+                        document.getElementById('fullName').value = data.fullName;
+                        document.getElementById('status').value = data.status;
+                    }
+                    if ((!document.getElementById('status').value || document.getElementById('status').value.trim() === '')) {
+                        document.getElementById('status').value = nalog.row.vkods;
+                    }
+                    if ((!document.getElementById('fullName').value || document.getElementById('fullName').value.trim() === '')) {
+                        document.getElementById('fullName').value = nalog.row.vnaimp;
+                    }
+                    if (!document.getElementById('registrationDate').value || document.getElementById('registrationDate').value.trim() === '') {
+                        document.getElementById('registrationDate').value = data.registrationDate;
+                    }
+                    if (!document.getElementById('address').value || document.getElementById('address').value.trim() === '') {
+                        document.getElementById('address').value = data.address;
+                    }
+                })
+        }).fail(function (nalog) {
+            console.info('fail')
+            fillDefault()
+        })
+    }
+</script>
+
+<script crossorigin="anonymous"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        th:src="@{https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js}">
+</script>
+</body>
+</html>

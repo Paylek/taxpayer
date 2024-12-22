@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: taxpayer
+
+  thymeleaf:
+    cache: false
+
+egr:
+  addressAndDateURL: 'http://egr.gov.by/api/v2/egr/getAddressByRegNum'
+  fullNameAndStatusURL: 'http://egr.gov.by/api/v2/egr/getShortInfoByRegNum'
